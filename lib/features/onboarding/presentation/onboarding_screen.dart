@@ -17,11 +17,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingData(
       title: 'Leaving your pet with someone?',
       subtitle: 'Create a simple care card with everything they need to know.',
+      imagePath: 'assets/petcover.png',
       icon: Icons.pets_rounded,
     ),
     OnboardingData(
       title: 'Everything in one place.',
-      subtitle: 'Feeding, medication, routine, emergency contacts, and vet information.',
+      subtitle:
+          'Feeding, medication, routine, emergency contacts, and vet information.',
       icon: Icons.assignment_rounded,
     ),
     OnboardingData(
@@ -107,12 +109,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class OnboardingData {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
+  final String? imagePath;
 
   OnboardingData({
     required this.title,
     required this.subtitle,
-    required this.icon,
+    this.icon,
+    this.imagePath,
   });
 }
 
@@ -123,35 +127,53 @@ class OnboardingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            data.icon,
-            size: 120,
-            color: AppTheme.primaryColor,
-          ),
-          const SizedBox(height: 48),
-          Text(
-            data.title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textColor,
+    // Scrollable so the page fits short screens instead of overflowing.
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (data.imagePath != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  data.imagePath!,
+                  height: 180,
+                  width: 180,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      data.icon ?? Icons.pets_rounded,
+                      size: 120,
+                      color: AppTheme.primaryColor,
+                    );
+                  },
                 ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            data.subtitle,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                  height: 1.5,
-                ),
-          ),
-        ],
+              )
+            else if (data.icon != null)
+              Icon(data.icon, size: 120, color: AppTheme.primaryColor),
+            const SizedBox(height: 48),
+            Text(
+              data.title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              data.subtitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

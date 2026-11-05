@@ -6,15 +6,23 @@ import 'features/reminders/service/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  final notificationService = NotificationService();
-  await notificationService.init();
+
+  final container = ProviderContainer();
 
   runApp(
-    const ProviderScope(
-      child: PetCareCardApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const PetCareCardApp(),
     ),
   );
+
+  // Set up reminders after the first frame so a slow or failing plugin
+  // can't block app start.
+  try {
+    await NotificationService().init();
+  } catch (e) {
+    debugPrint('Notification init failed: $e');
+  }
 }
 
 class PetCareCardApp extends ConsumerWidget {

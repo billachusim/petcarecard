@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import '../../sharing/service/pdf_service.dart';
+import '../../premium/presentation/premium_providers.dart';
 
 class CareCardScreen extends ConsumerWidget {
   final String petId;
@@ -62,14 +63,32 @@ class CareCardScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               if (details.emergencyContacts.isNotEmpty)
                 _buildSection('EMERGENCY', details.emergencyContacts.map((c) => _buildCareItem(c.name, c.phone, c.relationship)).toList(), color: Colors.red.shade50, titleColor: Colors.red.shade900),
+
               const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () => PdfService.generateAndPrint(details),
-                icon: const Icon(Icons.picture_as_pdf),
-                label: const Text('Export to PDF (Premium)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.secondaryColor,
-                ),
+              Consumer(
+                builder: (context, ref, child) {
+                  final isPremium = ref.watch(premiumNotifierProvider).isPremium;
+                  return ElevatedButton.icon(
+                    onPressed: () {
+                      if (isPremium) {
+                        PdfService.generateAndPrint(details);
+                      } else {
+                        context.push('/premium');
+                      }
+                    },
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: Text(
+                      isPremium
+                          ? 'Export Care Card PDF'
+                          : 'Export to PDF (Premium)',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isPremium
+                          ? AppTheme.primaryColor
+                          : AppTheme.secondaryColor,
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
             ],

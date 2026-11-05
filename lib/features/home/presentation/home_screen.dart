@@ -4,17 +4,47 @@ import 'package:go_router/go_router.dart';
 import 'home_providers.dart';
 import '../../../core/theme/app_theme.dart';
 
+import '../../premium/presentation/premium_providers.dart';
+import '../../pet_management/presentation/voice_quick_add_dialog.dart';
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
+
+  void _onVoiceAddPressed(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const VoiceQuickAddDialog(),
+    );
+  }
+
+  void _onAddPetPressed(BuildContext context, WidgetRef ref, int currentPetCount) {
+    final isPremium = ref.read(premiumNotifierProvider).isPremium;
+    if (!isPremium && currentPetCount >= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Free version includes 1 pet. Unlock Premium for unlimited pets!'),
+        ),
+      );
+      context.push('/premium');
+    } else {
+      context.push('/add-pet');
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final petsAsync = ref.watch(petsListProvider);
+    final petCount = petsAsync.value?.length ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pet Care Card'),
         actions: [
+          IconButton(
+            onPressed: () => _onVoiceAddPressed(context),
+            icon: const Icon(Icons.mic_outlined),
+            tooltip: 'Voice Quick Add',
+          ),
           IconButton(
             onPressed: () => context.push('/settings'),
             icon: const Icon(Icons.settings_outlined),
@@ -24,7 +54,9 @@ class HomeScreen extends ConsumerWidget {
       body: petsAsync.when(
         data: (pets) {
           if (pets.isEmpty) {
-            return const EmptyPetsState();
+            return EmptyPetsState(
+              onAddPet: () => _onAddPetPressed(context, ref, 0),
+            );
           }
           return PetsList(pets: pets);
         },
@@ -32,7 +64,7 @@ class HomeScreen extends ConsumerWidget {
         error: (err, stack) => Center(child: Text('Error: $err')),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/add-pet'),
+        onPressed: () => _onAddPetPressed(context, ref, petCount),
         label: const Text('Add Pet'),
         icon: const Icon(Icons.add),
       ),
@@ -41,7 +73,8 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class EmptyPetsState extends StatelessWidget {
-  const EmptyPetsState({super.key});
+  final VoidCallback onAddPet;
+  const EmptyPetsState({super.key, required this.onAddPet});
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +107,7 @@ class EmptyPetsState extends StatelessWidget {
           ),
           const SizedBox(height: 48),
           ElevatedButton.icon(
-            onPressed: () => context.push('/add-pet'),
+            onPressed: onAddPet,
             icon: const Icon(Icons.add),
             label: const Text('Add Pet'),
           ),
