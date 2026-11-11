@@ -8,6 +8,7 @@ import '../../features/premium/presentation/premium_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 
 import '../../features/care_card/presentation/qr_code_screen.dart';
+import '../../features/voice/presentation/voice_fill_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -39,6 +40,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           final petName = state.pathParameters['petName']!;
           return QrCodeScreen(petId: petId, petName: petName);
         },
+      ),
+      GoRoute(
+        path: '/voice-fill',
+        builder: (context, state) => const VoiceFillScreen(),
+      ),
+      GoRoute(
+        path: '/voice-fill/:petId',
+        builder: (context, state) =>
+            VoiceFillScreen(petId: state.pathParameters['petId']!),
       ),
       GoRoute(
         path: '/premium',
