@@ -50,7 +50,9 @@
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>This app needs photo library access to select photos of your pets for their care cards.</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>This app needs microphone access if you record videos of your pets.</string>
+		<string>Pet Care Card uses the microphone so you can describe your pet out loud and have the care card filled in for you.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>Pet Care Card turns what you say about your pet into text so it can fill in the care card for you to check.</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>

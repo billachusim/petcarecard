@@ -21,6 +21,11 @@ class CareCardScreen extends ConsumerWidget {
         title: const Text('PET CARE CARD'),
         actions: [
           IconButton(
+            tooltip: 'Add details by voice',
+            onPressed: () => context.push('/voice-fill/$petId'),
+            icon: const Icon(Icons.mic_outlined),
+          ),
+          IconButton(
             onPressed: () {
               detailsAsync.whenData((details) {
                 context.push('/qr/${details.pet.id}/${details.pet.name}');
@@ -61,6 +66,14 @@ class CareCardScreen extends ConsumerWidget {
               if (details.routines.isNotEmpty)
                 _buildSection('ROUTINE', details.routines.map((r) => _buildCareItem(r.title, r.schedule ?? 'Daily', r.instructions)).toList()),
               const SizedBox(height: 16),
+              if (details.medications.isNotEmpty) ...[
+                _buildSection('MEDICATIONS', details.medications.map((m) => _buildCareItem(m.name, [m.time, m.frequency].where((s) => s != null && s.isNotEmpty).join(' · '), [m.instructions, m.notes].where((s) => s != null && s.isNotEmpty).join('\n').ifEmptyNull)).toList()),
+                const SizedBox(height: 16),
+              ],
+              if (details.veterinarians.isNotEmpty) ...[
+                _buildSection('VET', details.veterinarians.map((v) => _buildCareItem(v.name, v.phone ?? '', [v.clinic, v.address].where((s) => s != null && s.isNotEmpty).join('\n').ifEmptyNull)).toList()),
+                const SizedBox(height: 16),
+              ],
               if (details.emergencyContacts.isNotEmpty)
                 _buildSection('EMERGENCY', details.emergencyContacts.map((c) => _buildCareItem(c.name, c.phone, c.relationship)).toList(), color: Colors.red.shade50, titleColor: Colors.red.shade900),
 
@@ -187,8 +200,17 @@ class CareCardScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text(subtitle, style: TextStyle(color: AppTheme.secondaryColor, fontWeight: FontWeight.bold)),
+              Flexible(
+                child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  subtitle,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(color: AppTheme.secondaryColor, fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
           if (notes != null) ...[
@@ -199,4 +221,8 @@ class CareCardScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+extension on String {
+  String? get ifEmptyNull => isEmpty ? null : this;
 }

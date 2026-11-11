@@ -5,19 +5,16 @@ import 'home_providers.dart';
 import '../../../core/theme/app_theme.dart';
 
 import '../../premium/presentation/premium_providers.dart';
-import '../../pet_management/presentation/voice_quick_add_dialog.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  void _onVoiceAddPressed(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const VoiceQuickAddDialog(),
-    );
-  }
-
-  void _onAddPetPressed(BuildContext context, WidgetRef ref, int currentPetCount) {
+  void _onAddPetPressed(
+    BuildContext context,
+    WidgetRef ref,
+    int currentPetCount, {
+    bool byVoice = false,
+  }) {
     final isPremium = ref.read(premiumNotifierProvider).isPremium;
     if (!isPremium && currentPetCount >= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -27,7 +24,7 @@ class HomeScreen extends ConsumerWidget {
       );
       context.push('/premium');
     } else {
-      context.push('/add-pet');
+      context.push(byVoice ? '/voice-fill' : '/add-pet');
     }
   }
 
@@ -41,9 +38,9 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Pet Care Card'),
         actions: [
           IconButton(
-            onPressed: () => _onVoiceAddPressed(context),
+            onPressed: () => _onAddPetPressed(context, ref, petCount, byVoice: true),
             icon: const Icon(Icons.mic_outlined),
-            tooltip: 'Voice Quick Add',
+            tooltip: 'Add a pet by voice',
           ),
           IconButton(
             onPressed: () => context.push('/settings'),
@@ -56,6 +53,7 @@ class HomeScreen extends ConsumerWidget {
           if (pets.isEmpty) {
             return EmptyPetsState(
               onAddPet: () => _onAddPetPressed(context, ref, 0),
+              onAddByVoice: () => _onAddPetPressed(context, ref, 0, byVoice: true),
             );
           }
           return PetsList(pets: pets);
@@ -74,7 +72,12 @@ class HomeScreen extends ConsumerWidget {
 
 class EmptyPetsState extends StatelessWidget {
   final VoidCallback onAddPet;
-  const EmptyPetsState({super.key, required this.onAddPet});
+  final VoidCallback onAddByVoice;
+  const EmptyPetsState({
+    super.key,
+    required this.onAddPet,
+    required this.onAddByVoice,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +113,12 @@ class EmptyPetsState extends StatelessWidget {
             onPressed: onAddPet,
             icon: const Icon(Icons.add),
             label: const Text('Add Pet'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: onAddByVoice,
+            icon: const Icon(Icons.mic_rounded),
+            label: const Text('Just say it: add by voice'),
           ),
         ],
       ),
