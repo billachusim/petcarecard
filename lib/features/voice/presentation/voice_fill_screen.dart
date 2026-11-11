@@ -85,7 +85,7 @@ const _sectionTitles = {
 
 /// Speak about your pet and the app fills in the care card.
 ///
-/// Speech is turned into text on the phone. The text (never audio) goes to
+/// The phone's speech service turns speech into text. The text (never audio) goes to
 /// the Pet Care Cards server, which runs the same AI parser as the website.
 /// The user reviews and edits everything before it's saved.
 class VoiceFillScreen extends ConsumerStatefulWidget {
@@ -490,8 +490,9 @@ class _VoiceFillScreenState extends ConsumerState<VoiceFillScreen> {
           ),
         const SizedBox(height: 8),
         Text(
-          'Your words are turned into text on your phone. Only the text is sent to '
-          'fill in the card, and it isn\'t stored. You check everything before it\'s saved.',
+          "Your phone's own speech service turns your words into text. We never get "
+          "the audio: only the text is sent to fill in the card, and it isn't stored. "
+          "You check everything before it's saved.",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
         ),
