@@ -94,11 +94,10 @@ class PremiumScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
             ],
+            // Only list what the unlock actually adds (App Review checks this).
             _buildFeatureRow(Icons.pets, 'Unlimited pets'),
-            _buildFeatureRow(Icons.picture_as_pdf, 'Printable PDF Care Cards'),
-            _buildFeatureRow(Icons.notifications_active, 'Smart care reminders'),
-            _buildFeatureRow(Icons.qr_code_2, 'Advanced QR codes'),
-            _buildFeatureRow(Icons.backup, 'Export & Backup data'),
+            _buildFeatureRow(Icons.mic, 'Unlimited voice fills'),
+            _buildFeatureRow(Icons.picture_as_pdf, 'Printable PDF care cards'),
             const SizedBox(height: 48),
             if (premiumState.isLoading)
               const CircularProgressIndicator()
