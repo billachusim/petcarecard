@@ -61,15 +61,25 @@ class PremiumNotifier extends Notifier<PremiumState> {
     _initIAP();
     ref.onDispose(() {
       _subscription?.cancel();
+      _restoreTimer?.cancel();
     });
     return const PremiumState(isPremium: false, isLoading: true);
   }
 
-  Future<void> _initIAP() async {
-    final isUnlocked = await _repository.isPremiumUnlocked();
+  /// How long to wait for the store before giving up on a spinner.
+  static const _storeTimeout = Duration(seconds: 10);
+  static const _restoreTimeout = Duration(seconds: 20);
+  Timer? _restoreTimer;
 
-    final purchaseStream = _iap.purchaseStream;
-    _subscription = purchaseStream.listen(
+  Future<void> _initIAP() async {
+    var isUnlocked = false;
+    try {
+      isUnlocked = await _repository.isPremiumUnlocked();
+    } catch (_) {
+      // Fall through as not unlocked; Restore Purchase can recover it.
+    }
+
+    _subscription = _iap.purchaseStream.listen(
       _onPurchaseUpdate,
       onDone: () => _subscription?.cancel(),
       onError: (error) {
@@ -80,41 +90,58 @@ class PremiumNotifier extends Notifier<PremiumState> {
       },
     );
 
-    final bool available = await _iap.isAvailable();
-    if (!available) {
+    state = state.copyWith(isPremium: isUnlocked);
+    await _loadProduct();
+  }
+
+  /// Loads the lifetime product. Always ends with isLoading = false, so the
+  /// Premium screen never spins forever on a slow or unreachable store.
+  Future<void> _loadProduct() async {
+    try {
+      final bool available = await _iap.isAvailable().timeout(_storeTimeout);
+      if (!available) {
+        state = state.copyWith(
+          isLoading: false,
+          isStoreAvailable: false,
+          errorMessage: "The store isn't available right now. Please try again.",
+        );
+        return;
+      }
+
+      final ProductDetailsResponse response =
+          await _iap.queryProductDetails({productId}).timeout(_storeTimeout);
+
+      ProductDetails? details;
+      if (response.productDetails.isNotEmpty) {
+        details = response.productDetails.firstWhere(
+          (element) => element.id == productId,
+          orElse: () => response.productDetails.first,
+        );
+      }
+
       state = state.copyWith(
-        isPremium: isUnlocked,
         isLoading: false,
-        isStoreAvailable: false,
+        isStoreAvailable: true,
+        productDetails: details,
+        errorMessage: details == null
+            ? "Couldn't load the price from the store. Tap Unlock to try again."
+            : null,
       );
-      return;
-    }
-
-    final ProductDetailsResponse response =
-        await _iap.queryProductDetails({productId});
-
-    ProductDetails? details;
-    if (response.productDetails.isNotEmpty) {
-      details = response.productDetails.firstWhere(
-        (element) => element.id == productId,
-        orElse: () => response.productDetails.first,
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage:
+            "Couldn't reach the store. Check your connection and tap Unlock to try again.",
       );
     }
-
-    state = state.copyWith(
-      isPremium: isUnlocked,
-      isLoading: false,
-      isStoreAvailable: true,
-      productDetails: details,
-    );
   }
 
   Future<void> buyLifetime() async {
     if (state.productDetails == null) {
-      state = state.copyWith(
-        errorMessage: 'Store product details not loaded. Please try again in a moment.',
-      );
-      return;
+      // Price didn't load earlier (slow store or offline): try once more.
+      state = state.copyWith(isLoading: true, errorMessage: null, successMessage: null);
+      await _loadProduct();
+      if (state.productDetails == null) return;
     }
 
     state = state.copyWith(isLoading: true, errorMessage: null, successMessage: null);
@@ -123,7 +150,13 @@ class PremiumNotifier extends Notifier<PremiumState> {
         PurchaseParam(productDetails: state.productDetails!);
 
     try {
-      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      final started = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      if (!started) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: "The purchase couldn't start. Please try again.",
+        );
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -134,9 +167,21 @@ class PremiumNotifier extends Notifier<PremiumState> {
 
   Future<void> restorePurchases() async {
     state = state.copyWith(isLoading: true, errorMessage: null, successMessage: null);
+    // The store only reports back when there IS something to restore, so
+    // stop the spinner ourselves if nothing arrives.
+    _restoreTimer?.cancel();
+    _restoreTimer = Timer(_restoreTimeout, () {
+      if (state.isLoading && !state.isPremium) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'No previous purchase found for this Apple ID or Google account.',
+        );
+      }
+    });
     try {
       await _iap.restorePurchases();
     } catch (e) {
+      _restoreTimer?.cancel();
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to restore purchases: $e',
@@ -155,6 +200,7 @@ class PremiumNotifier extends Notifier<PremiumState> {
         );
       } else if (purchaseDetails.status == PurchaseStatus.purchased ||
                  purchaseDetails.status == PurchaseStatus.restored) {
+        _restoreTimer?.cancel();
         await _repository.setPremiumUnlocked(true);
         state = state.copyWith(
           isPremium: true,
